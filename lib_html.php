@@ -423,7 +423,9 @@ class Page extends Content {
 	}
 
 	public function add_script_reference($path) {
-		array_push($this->scriptReferences,
+		# Add elements to beginning of array so that scripts added before
+		# destruct come after things like jQuery are loaded.
+		array_unshift($this->scriptReferences,
 				block('script',
 					false,
 					array('type'=> 'text/javascript',
