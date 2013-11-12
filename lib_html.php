@@ -1,5 +1,4 @@
 <?php
-$postscript = '';
 
 function attrs ($attrs) {
 	if ($attrs != false) {
@@ -29,7 +28,7 @@ function block($type, $body = false, $attrs = array()) {
 	return start_tag($type,$attrs) . ($body != false ? (is_object($body) ?  $body->as_string() : $body) : '') . end_tag($type);
 }
 
-function inline($type, $attrs = false) {	
+function inline($type, $attrs = false) {
 	return start_tag($type,$attrs);
 }
 
@@ -63,16 +62,21 @@ function label($id, $text, $attrs=array()) {
 	return block('label',$text, $attrs);
 }
 
-function radioOption($name, $id, $value, $text, $attrs=array()) {
+function radioOption($name, $id, $value, $text, $attrs=Array()) {
 	return radio($name, $id, $value, $attrs) . label($id, $text, $attrs);
 }
 
-function textbox($name, $id=False, $value=False, $attrs) {	
+function textbox($name, $id=False, $value=False, $attrs=Array()) {
 	return input('text',$name, $id, $value, $attrs);
 }
 
-function checkbox($name, $attrs = array()) {
-	return input('checkbox', $name, False, False, $attrs);
+function checkbox($name, $checked=False, $attrs=Array()) {
+	if ($checked) $attrs['checked'] = 'checked';
+	return input('checkbox', $name, $name, False, $attrs);
+}
+
+function checkboxOption($name, $label, $checked, $attrs_label=Array(), $attrs_checkbox=Array()) {
+	return checkbox($name, $checked, $attrs_checkbox) . label($name, $label, $attrs_label);
 }
 
 function datepicker($name, $date=False, $attrs=array(), $script=False) {
@@ -95,9 +99,9 @@ function select($name, $options, $selectedIndex = false, $attrs = array()) {
 	$attrs['id'] = $name;
 	$attrs['name'] = $name;
 	$tmp .= start_tag('select',$attrs);
-	
 
-	
+
+
 	foreach ($options AS $key => $value) {
 		$attr = array('value'=>($key+1));
 		if ($selectedIndex == $key) $attr['selected'] = 'selected';
@@ -138,6 +142,29 @@ function href($text, $href, $attrs=array()) {
 	return block('a', $text, $attrs);
 }
 
+function script_block($block, $type='text/javascript', $attrs=Array()) {
+	$attrs['type'] = $type;
+	return block('script', $block, $attrs);
+}
+
+function script_reference($src, $type='text/javascript', $attrs=Array()) {
+	$attrs['type'] = $type;
+	$attrs['src'] = $src;
+	return block('script', '', $attrs);
+}
+
+function style_block($block, $type='text/css', $attrs=Array()) {
+	$attrs['type'] = $type;
+	return block('style', $block, $attrs);
+}
+
+function style_reference($src, $type='text/css', $attrs=Array()) {
+	$attrs['type'] = $type;
+	$attrs['href'] = $src;
+	$attrs['rel'] = 'stylesheet';
+	return inline('link', $attrs);
+}
+
 function textarea($name, $body, $placeholder=False, $attrs=array()) {
 	$attrs['name'] = $name;
 	$attrs['id'] = $name;
@@ -175,6 +202,43 @@ function table($rows, $attrs=array(), $ignoreHeaders=False) {
 	return $tmp;
 }
 
+function transpose($array) {
+    array_unshift($array, null);
+    return call_user_func_array('array_map', $array);
+}
+
+
+function table_vertical($data, $attrs=Array(), $ignoreHeaders=False) {
+	$headers = array_keys($data);
+	$rows = transpose($data);
+	$tmp = '';
+	$tmp .= start_tag('table',$attrs);
+	if ($ignoreHeaders == False) {
+		$tmp .= start_tag('tr');
+		foreach ($headers AS $header) {
+			$tmp .= block('th',$header);
+		}
+		$tmp .= end_tag('tr');
+	}
+	foreach ($rows AS $row) {
+		$tmp .= start_tag('tr');
+		if (is_array($row)) {
+			foreach($row AS $tmp2) {
+				if (is_object($tmp2)) $tmp .= block('td', $tmp2->as_string());
+				else $tmp .= block('td',$tmp2);
+			}
+		}
+		elseif (is_object($row)) {
+			$tmp .= block('td', $row->as_string());
+		}
+		else $tmp .= block('td',$row);
+		$tmp .= end_tag('tr');
+	}
+	$tmp .= end_tag('table');
+	return $tmp;
+}
+
+
 class Element {
 
 	protected $content = array();
@@ -198,7 +262,7 @@ class Element {
 			elseif (is_string($item)) echo $item . "\n";
 		}
 	}
-	
+
 	public function as_string() {
 		$out =  '';
 		foreach ($this->content AS $item) {
@@ -244,7 +308,7 @@ class BaseList extends Element {
 			$this->closed = True;
 		}
 	}
-	
+
 	public function as_string() {
 		$this->close();
 		return parent::as_string();
@@ -287,7 +351,7 @@ class Form extends Content {
 		$this->append(button($text, $attrs));
 	}
 
-	public function textbox($name, $id=False, $value=False, $attrs=array()) {	
+	public function textbox($name, $id=False, $value=False, $attrs=array()) {
 		$this->append(textbox($name, $id, $value, $attrs));
 	}
 
@@ -309,6 +373,10 @@ class Form extends Content {
 
 	public function checkbox($name, $attrs=array()) {
 		$this->append(checkbox($name, $attrs));
+	}
+
+	public function checkboxOption($name, $label, $checked, $attrs_label=Array(), $attrs_checkbox=Array()) {
+		$this->append(checkboxOption($name, $label, $checked, $attrs_label, $attrs_checkbox));
 	}
 
 	public function label($name,$text,$attrs=array()) {
@@ -390,6 +458,10 @@ class Content extends Element {
 		$this->append(table($rows,$attrs, $ignoreHeaders));
 	}
 
+	public function table_vertical($data, $attrs=Array(), $ignoreHeaders=False) {
+		$this->append(table_vertical($data, $attrs, $ignoreHeaders));
+	}
+
 	public function div($content, $attrs=array()) {
 		$this->append(div($content, $attrs));
 	}
@@ -412,9 +484,11 @@ class Content extends Element {
 class Page extends Content {
 
 	protected $head;
-	protected $scriptReferences = array();
-	protected $cssReferences = array();
-	protected $postscripts = array();
+	//protected $scriptReferences = Array();
+	protected $stylesheets = Array();
+	protected $postscripts = Array();
+	protected $prescripts = Array();
+	protected $onready_js = Array();
 
 	public function __construct($title,$description=False) {
 		$this->head = new Element();
@@ -422,43 +496,50 @@ class Page extends Content {
 		$this->head->append(inline('meta',array('Description'=>$description)));
 	}
 
-	public function add_script_reference($path) {
-		array_push($this->scriptReferences,
-				block('script',
-					false,
-					array('type'=> 'text/javascript',
-						'src' => $path)
-					)
-				);
+	public function script_block($block, $head=False, $type='text/javascript', $attrs=Array()) {
+		if ($head) array_push($this->prescripts, script_block($block, $type, $attrs));
+		else array_push($this->postscripts, script_block($block, $type, $attrs));
 	}
 
-	public function add_css_reference($path) {
-		$this->head->append(inline('link',array(
-				'rel' => 'stylesheet',
-				'type' => 'text/css',
-				'href' => $path)));
+	public function readyScript($code) {
+		array_push($this->onready_js, $code);
 	}
 
-	public function add_postscript($script) {
-		array_push($this->postscripts,$script);
+	public function script_reference($src, $head=False, $type='text/javascript', $attrs=Array()) {
+		if ($head) array_push($this->prescripts, script_reference($src, $type, $attrs));
+		else array_push($this->postscripts, script_reference($src, $type, $attrs));
 	}
 
+	public function style_block($block, $type='text/css', $attrs=Array()) {
+		array_push($this->stylesheets, style_block($block, $type, $attrs));
+	}
+
+	public function style_reference($src, $type='text/css', $attrs=Array()) {
+		array_push($this->stylesheets, style_reference($src, $type, $attrs));
+	}
 
 	public function render() {
 		$this->wrap('div',array('id'=>'main'));
-		foreach ($this->scriptReferences AS $scriptReference) {
-			$this->append($scriptReference);
+		foreach ($this->postscripts AS $postscript) {
+			$this->append($postscript);
 		}
-		if (count($this->postscripts) > 0) {
-			$scripts = new Content();
-			foreach ($this->postscripts as $postscript) {
-				$scripts->append($postscript);
+		if (count($this->onready_js) > 0) {
+			$tmp = '';
+			foreach ($this->onready_js AS $js) {
+				$tmp .= $js;
 			}
-			$scripts->wrap('script',array('type'=>'text/javascript'));
-			$this->append($scripts);
+			$out = '<script type="text/javascript">$(document).ready(function(){';
+			$out .= $tmp;
+			$out .= '});</script>';
+			$this->append($out);
 		}
-
 		$this->wrap('body');
+		foreach ($this->stylesheets AS $stylesheet) {
+			$this->head->append($stylesheet);
+		}
+		foreach ($this->prescripts AS $prescript) {
+			$this->head->append($prescript);
+		}
 		$this->head->wrap('head');
 		$this->prepend($this->head);
 		$this->wrap('html',array('lang'=>'en'));
