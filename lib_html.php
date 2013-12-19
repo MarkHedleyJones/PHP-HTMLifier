@@ -53,6 +53,10 @@ function input($type, $name, $id=False, $value=False, $attrs=array()) {
         return inline('input', $attrs);
 }
 
+function generic_tag($type, $attrs=Array()) {
+	return inline($type, $attrs);
+}
+
 function radio($name, $id, $value, $attrs=array()) {
 	return input('radio', $name, $id, $value, $attrs);
 }
@@ -485,7 +489,7 @@ class Page extends Content {
 
 	protected $head;
 	//protected $scriptReferences = Array();
-	protected $stylesheets = Array();
+	protected $head_entries = Array();
 	protected $postscripts = Array();
 	protected $prescripts = Array();
 	protected $onready_js = Array();
@@ -505,17 +509,21 @@ class Page extends Content {
 		array_push($this->onready_js, $code);
 	}
 
+	public function generic_tag($type, $attrs=Array()) {
+		array_push($this->head_entries, generic_tag($type, $attrs));
+	}
+
 	public function script_reference($src, $head=False, $type='text/javascript', $attrs=Array()) {
 		if ($head) array_push($this->prescripts, script_reference($src, $type, $attrs));
 		else array_push($this->postscripts, script_reference($src, $type, $attrs));
 	}
 
 	public function style_block($block, $type='text/css', $attrs=Array()) {
-		array_push($this->stylesheets, style_block($block, $type, $attrs));
+		array_push($this->head_entries, style_block($block, $type, $attrs));
 	}
 
 	public function style_reference($src, $type='text/css', $attrs=Array()) {
-		array_push($this->stylesheets, style_reference($src, $type, $attrs));
+		array_push($this->head_entries, style_reference($src, $type, $attrs));
 	}
 
 	public function render() {
@@ -534,7 +542,7 @@ class Page extends Content {
 			$this->append($out);
 		}
 		$this->wrap('body');
-		foreach ($this->stylesheets AS $stylesheet) {
+		foreach ($this->head_entries AS $stylesheet) {
 			$this->head->append($stylesheet);
 		}
 		foreach ($this->prescripts AS $prescript) {
