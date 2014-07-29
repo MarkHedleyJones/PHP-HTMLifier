@@ -470,6 +470,15 @@ class Content extends Element {
 		$this->append(div($content, $attrs));
 	}
 
+	public function script_block($block, $type='text/javascript', $attrs=Array()) {
+		$this->append(script_block($block, $type, $attrs));
+	}
+
+	public function block($type, $body = false, $attrs = array()) {
+		return block($type, $body, $attrs);
+	}
+
+
 	public function div_open($attrs=array()) {
 		++$this->level;
 		$this->append(start_tag('div', $attrs));
