@@ -496,17 +496,20 @@ class Content extends Element {
 
 class Page extends Content {
 
+	public $title = False;
+	public $description = False;
 	protected $head;
+
 	//protected $scriptReferences = Array();
 	protected $head_entries = Array();
 	protected $postscripts = Array();
 	protected $prescripts = Array();
 	protected $onready_js = Array();
 
-	public function __construct($title,$description=False) {
+	public function __construct($title=False,$description=False) {
 		$this->head = new Element();
-		$this->head->append(block('title',$title));
-		$this->head->append(inline('meta',array('Description'=>$description)));
+		if ($title != False) $this->title = $title;
+		if ($description != False) $this->description = $description;
 	}
 
 	public function script_block($block, $head=False, $type='text/javascript', $attrs=Array()) {
@@ -536,6 +539,11 @@ class Page extends Content {
 	}
 
 	public function render() {
+
+		$this->head->prepend(inline('meta',
+		                     		array('Description'=>$this->description)));
+		$this->head->prepend(block('title',$this->title));
+
 		$this->wrap('div',array('id'=>'main'));
 		foreach ($this->postscripts AS $postscript) {
 			$this->append($postscript);
