@@ -1378,7 +1378,8 @@ class Page extends Content {
 	public function render() {
 
 		$this->head->prepend(inline('meta',
-		                     		array('Description'=>$this->description)));
+		                     		array('name'=>'description',
+		                     		      'content'=>$this->description)));
 		$this->head->prepend(block('title',$this->title));
 
 		$this->wrap('div',array('id'=>'main'));
